@@ -1,12 +1,23 @@
 import React, { useState } from 'react';
 import logoImage from '../assets/logo.png';
+import { MaximizeIcon } from '../utils/icons';
 
 interface TopNavigationProps {
   workflowName: string;
   onWorkflowNameChange: (name: string) => void;
   onDeleteCanvas: () => void;
   onActivatePublish: () => void;
+  onSaveDraft?: () => void;
   onNavigateToHome?: () => void;
+  zoom?: number;
+  onZoomIn?: () => void;
+  onZoomOut?: () => void;
+  onResetView?: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  onDelete?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
 }
 
 export const TopNavigation: React.FC<TopNavigationProps> = ({
@@ -14,7 +25,17 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
   onWorkflowNameChange,
   onDeleteCanvas,
   onActivatePublish,
+  onSaveDraft,
   onNavigateToHome,
+  zoom = 1,
+  onZoomIn,
+  onZoomOut,
+  onResetView,
+  onUndo,
+  onRedo,
+  onDelete,
+  canUndo = false,
+  canRedo = false,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(workflowName);
@@ -41,9 +62,6 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
                 onClick={onNavigateToHome}
                 className="text-gray-500 hover:text-gray-700 flex items-center gap-1"
               >
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M8 2L2 7v7h4v-4h4v4h4V7l-6-5z" fill="currentColor"/>
-                </svg>
                 <span>Optimization</span>
               </button>
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
@@ -72,28 +90,104 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
               autoFocus
             />
           ) : (
-            <div className="flex items-center gap-2">
-              <span className="text-gray-900 underline decoration-purple-primary">{workflowName}</span>
-              <button
-                onClick={() => setIsEditing(true)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  <path d="M8 2l4 4-4 4M2 2l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                </svg>
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => setIsEditing(true)}
+              className="text-gray-900 underline decoration-purple-primary hover:text-purple-700"
+            >
+              {workflowName}
+            </button>
           )}
         </div>
+      </div>
 
-        {/* Toggle Switch (inactive) */}
-        <div className="w-10 h-6 bg-gray-200 rounded-full relative">
-          <div className="w-4 h-4 bg-white rounded-full absolute left-1 top-1"></div>
+      {/* Center: Search + Zoom + Actions */}
+      <div className="flex items-center gap-2 bg-white rounded-full border border-gray-200 px-2 py-1.5">
+        <div className="relative w-[200px]">
+          <svg
+            className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400"
+            width="14"
+            height="14"
+            viewBox="0 0 16 16"
+            fill="none"
+          >
+            <circle cx="7" cy="7" r="4" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+            <path d="M11 11l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+          <input
+            type="text"
+            placeholder="Search"
+            className="w-full pl-8 pr-2 py-1 text-sm bg-transparent border-0 focus:ring-0 focus:outline-none"
+          />
         </div>
+        <div className="w-px h-5 bg-gray-200" />
+        <div className="flex items-center gap-0.5">
+          <button
+            onClick={onZoomOut}
+            className="flex items-center justify-center min-w-8 min-h-8 p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded box-border"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M4 8h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          </button>
+          <span className="px-1.5 text-sm text-gray-700 min-w-[44px] text-center">
+            {Math.round(zoom * 100)}%
+          </span>
+          <button
+            onClick={onZoomIn}
+            className="flex items-center justify-center min-w-8 min-h-8 p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded box-border"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M8 4v8M4 8h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          </button>
+          <button
+            onClick={onResetView}
+            className="flex items-center justify-center min-w-8 min-h-8 p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded box-border"
+          >
+            <MaximizeIcon />
+          </button>
+        </div>
+        <div className="w-px h-5 bg-gray-200" />
+        <button
+          onClick={onUndo}
+          disabled={!canUndo}
+          className={`flex items-center justify-center min-w-8 min-h-8 p-1.5 rounded box-border ${canUndo ? 'text-gray-600 hover:text-gray-900 hover:bg-gray-100' : 'text-gray-300 cursor-not-allowed'}`}
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M3 8h10M6 5l-3 3 3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+        <button
+          onClick={onRedo}
+          disabled={!canRedo}
+          className={`flex items-center justify-center min-w-8 min-h-8 p-1.5 rounded box-border ${canRedo ? 'text-gray-600 hover:text-gray-900 hover:bg-gray-100' : 'text-gray-300 cursor-not-allowed'}`}
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M13 8H3M10 5l3 3-3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+        <div className="w-px h-5 bg-gray-200" />
+        <button
+          onClick={onDelete}
+          className="flex items-center justify-center min-w-8 min-h-8 p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded box-border"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M2 4h12M5 4V2a1 1 0 011-1h4a1 1 0 011 1v2m-6 4v4m4-4v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+        </button>
       </div>
 
       {/* Right Section */}
       <div className="flex items-center gap-3">
+        {onSaveDraft && (
+          <button
+            onClick={onSaveDraft}
+            className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+          >
+            Save draft
+          </button>
+        )}
         <button
           onClick={onDeleteCanvas}
           className="px-4 py-2 text-red-600 border border-red-600 rounded-lg hover:bg-red-50"

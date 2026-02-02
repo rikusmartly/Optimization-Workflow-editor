@@ -26,11 +26,11 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 }) => {
 
   return (
-    <div className="fixed top-16 left-0 right-0 h-14 flex items-center justify-between px-6 bg-transparent z-30">
-      {/* Left Section */}
-      <div className="flex items-center gap-3">
+    <div className="fixed top-16 left-0 right-0 h-14 flex items-center justify-end px-6 bg-transparent z-30">
+      {/* Search (next to zoom) + Zoom + Actions - one bar */}
+      <div className="flex items-center gap-2 bg-white rounded-lg border border-gray-200 px-2 py-1">
         {/* Search Bar */}
-        <div className="relative w-[341px]">
+        <div className="relative w-[220px]">
           <svg
             className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
             width="16"
@@ -44,14 +44,14 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <input
             type="text"
             placeholder="Search"
-            className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-primary focus:border-transparent"
+            className="w-full pl-9 pr-3 py-1.5 text-sm bg-transparent border-0 focus:ring-0 focus:outline-none"
           />
         </div>
-      </div>
 
-      {/* Right Section */}
-      <div className="flex items-center gap-2 bg-white rounded-lg border border-gray-200 px-2 py-1">
+        <div className="w-px h-6 bg-gray-200" />
+
         {/* Zoom Controls */}
+        <div className="flex items-center gap-0.5">
         <button
           onClick={onZoomOut}
           className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded"
@@ -77,6 +77,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         >
           <MaximizeIcon />
         </button>
+        </div>
 
         {/* Divider */}
         <div className="w-px h-6 bg-gray-200 mx-1" />

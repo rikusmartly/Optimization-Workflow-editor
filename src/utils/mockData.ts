@@ -1,5 +1,44 @@
 import { AccountGroup, Node, Connection } from '../types';
 
+/** Mock ads for scope "matching items" – filtered by selected scope and name contains */
+export interface MockAd {
+  id: string;
+  name: string;
+  accountId: string;
+}
+
+export const mockAds: MockAd[] = [
+  { id: 'ad-1', name: 'Summer Sale - Carousel', accountId: 'meta-1' },
+  { id: 'ad-2', name: 'Summer Campaign - Video', accountId: 'meta-1' },
+  { id: 'ad-3', name: 'Brand Awareness - Static', accountId: 'meta-1' },
+  { id: 'ad-4', name: 'Black Friday - Dynamic', accountId: 'meta-2' },
+  { id: 'ad-5', name: 'Brand Hero - Video', accountId: 'meta-2' },
+  { id: 'ad-6', name: 'Summer Flash Sale', accountId: 'meta-2' },
+  { id: 'ad-7', name: 'Holiday Brand Spot', accountId: 'meta-3' },
+  { id: 'ad-8', name: 'Summer Collection - DCO', accountId: 'meta-3' },
+  { id: 'ad-9', name: 'Brand Launch - Meta', accountId: 'meta-4' },
+  { id: 'ad-10', name: 'Summer Promo - 20% off', accountId: 'meta-4' },
+  { id: 'ad-11', name: 'Retargeting - Cart', accountId: 'meta-5' },
+  { id: 'ad-12', name: 'Brand Video - 15s', accountId: 'meta-5' },
+  { id: 'ad-13', name: 'Summer Lookbook', accountId: 'meta-6' },
+  { id: 'ad-14', name: 'New Brand Campaign', accountId: 'meta-6' },
+  { id: 'ad-15', name: 'Dynamic Summer Ads', accountId: 'meta-6' },
+];
+
+/** Returns ads that fit within the selected scope and match name contains (if set). */
+export function getMatchingAds(scope: { accounts?: string[]; nameContains?: string } | undefined): MockAd[] {
+  if (!scope) return [];
+  const accountIds = scope.accounts && scope.accounts.length > 0
+    ? new Set(scope.accounts)
+    : null; // no selection = all accounts in mock
+  const nameQuery = scope.nameContains?.trim().toLowerCase() || null;
+  return mockAds.filter(ad => {
+    if (accountIds && !accountIds.has(ad.accountId)) return false;
+    if (nameQuery && !ad.name.toLowerCase().includes(nameQuery)) return false;
+    return true;
+  });
+}
+
 export const mockAccountGroups: AccountGroup[] = [
   {
     id: 'all',

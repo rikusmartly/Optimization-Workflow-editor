@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Node, Connection } from '../types';
-import { Node as NodeComponent } from './Node';
+import { Node as NodeComponent, NODE_WIDTH, getNodeHeight, getNodeWidth } from './Node';
 import { ConnectionLine } from './ConnectionLine';
 import { NodeSettingsPanel } from './NodeSettingsPanel';
 import { ScopeSelectionDialog } from './ScopeSelectionDialog';
@@ -10,6 +10,7 @@ interface NodeBasedTriggerEditorProps {
   connections: Connection[];
   onNodesChange: (nodes: Node[]) => void;
   onConnectionsChange: (connections: Connection[]) => void;
+  onAddNodeAtPosition?: (type: import('../types').NodeType, position: { x: number; y: number }) => void;
   zoom?: number;
   onZoomChange?: (zoom: number) => void;
   onResetView?: () => void;
@@ -20,6 +21,7 @@ export const NodeBasedTriggerEditor: React.FC<NodeBasedTriggerEditorProps> = ({
   connections,
   onNodesChange,
   onConnectionsChange,
+  onAddNodeAtPosition,
   zoom: externalZoom,
   onZoomChange,
   onResetView,
@@ -44,6 +46,7 @@ export const NodeBasedTriggerEditor: React.FC<NodeBasedTriggerEditorProps> = ({
   const [scopeNodeId, setScopeNodeId] = useState<string | null>(null);
 
   const canvasRef = useRef<SVGSVGElement>(null);
+  const contentGroupRef = useRef<SVGGElement>(null);
   const isPanning = useRef(false);
   const panStart = useRef<{ x: number; y: number } | null>(null);
 
@@ -123,13 +126,16 @@ export const NodeBasedTriggerEditor: React.FC<NodeBasedTriggerEditorProps> = ({
         const y = (connectionDrag.currentY - rect.top - panOffset.y) / zoom;
 
         const targetNode = nodes.find(node => {
+          if (node.type === 'note') return false; // Notes don't accept connections
           const nodeX = node.position.x;
           const nodeY = node.position.y;
+          const nodeW = getNodeWidth(node);
+          const nodeH = getNodeHeight(node);
           return (
             x >= nodeX &&
-            x <= nodeX + 200 &&
+            x <= nodeX + nodeW &&
             y >= nodeY &&
-            y <= nodeY + 64
+            y <= nodeY + nodeH
           );
         });
 
@@ -259,6 +265,28 @@ export const NodeBasedTriggerEditor: React.FC<NodeBasedTriggerEditorProps> = ({
 
   const selectedNode = selectedNodeIds.size === 1 ? nodes.find(n => selectedNodeIds.has(n.id)) : null;
 
+  // Handle drop from toolbar: convert screen coords to canvas coords and add node
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    const type = e.dataTransfer.getData('node-type') as import('../types').NodeType | '';
+    if (!onAddNodeAtPosition || !type || !['scope', 'schedule', 'condition', 'action', 'note'].includes(type)) return;
+    const g = contentGroupRef.current;
+    const svg = canvasRef.current;
+    if (!g || !svg) return;
+    const pt = svg.createSVGPoint();
+    pt.x = e.clientX;
+    pt.y = e.clientY;
+    const svgPt = pt.matrixTransform(g.getScreenCTM()?.inverse());
+    const x = Math.max(0, Math.round(svgPt.x));
+    const y = Math.max(0, Math.round(svgPt.y));
+    onAddNodeAtPosition(type as import('../types').NodeType, { x, y });
+  }, [onAddNodeAtPosition]);
+
   // Get connection line for drag preview
   const getConnectionDragLine = () => {
     if (!connectionDrag) return null;
@@ -270,8 +298,8 @@ export const NodeBasedTriggerEditor: React.FC<NodeBasedTriggerEditorProps> = ({
     const targetX = (connectionDrag.currentX - rect.left - panOffset.x) / zoom;
     const targetY = (connectionDrag.currentY - rect.top - panOffset.y) / zoom;
 
-    const sourceX = sourceNode.position.x + 200;
-    const sourceY = sourceNode.position.y + 32;
+    const sourceX = sourceNode.position.x + getNodeWidth(sourceNode);
+    const sourceY = sourceNode.position.y + getNodeHeight(sourceNode) / 2;
 
     const dx = targetX - sourceX;
     const cp1x = sourceX + dx * 0.5;
@@ -299,16 +327,19 @@ export const NodeBasedTriggerEditor: React.FC<NodeBasedTriggerEditorProps> = ({
         className="w-full h-full canvas-grid"
         onMouseDown={handleMouseDown}
         onWheel={handleWheel}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
         style={{ cursor: 'grab' }}
         width={canvasBounds.maxX}
         height={canvasBounds.maxY}
       >
-        <g transform={`translate(${panOffset.x}, ${panOffset.y}) scale(${zoom})`}>
+        <g ref={contentGroupRef} transform={`translate(${panOffset.x}, ${panOffset.y}) scale(${zoom})`}>
           {/* Connection lines */}
           {connections.map(conn => {
             const sourceNode = nodes.find(n => n.id === conn.sourceId);
             const targetNode = nodes.find(n => n.id === conn.targetId);
             if (!sourceNode || !targetNode) return null;
+            if (sourceNode.type === 'note' || targetNode.type === 'note') return null;
             return (
               <ConnectionLine
                 key={conn.id}
@@ -369,7 +400,7 @@ export const NodeBasedTriggerEditor: React.FC<NodeBasedTriggerEditorProps> = ({
           onApply={(scope) => {
             const updatedNode = nodes.find(n => n.id === scopeNodeId);
             if (updatedNode) {
-              handleNodeUpdate({ ...updatedNode, scope });
+              handleNodeUpdate({ ...updatedNode, scope: { ...updatedNode.scope, ...scope } });
             }
             setShowScopeDialog(false);
             setScopeNodeId(null);

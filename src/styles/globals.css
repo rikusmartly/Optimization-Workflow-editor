@@ -14,8 +14,8 @@
 
 @layer utilities {
   .canvas-grid {
-    background-color: #ffffff;
-    background-image: radial-gradient(circle, #e5e5e5 1px, transparent 1px);
+    background-color: #f8f8f8;
+    background-image: radial-gradient(circle, #e0e0e0 1px, transparent 1px);
     background-size: 12px 12px;
   }
   

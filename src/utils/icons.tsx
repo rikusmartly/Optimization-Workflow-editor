@@ -25,6 +25,13 @@ export const ActionIcon = () => (
   </svg>
 );
 
+export const NoteIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+    <path d="M4 2h6l4 4v8H4V2z" stroke="#9138ea" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+    <path d="M10 2v4h4" stroke="#9138ea" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
 export const FacebookIcon = () => (
   <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
     <path d="M8 0C3.6 0 0 3.6 0 8c0 4 2.9 7.3 6.7 7.9v-5.6H4.7V8h2V6.2c0-2 1.2-3.1 3-3.1.9 0 1.8.1 1.8.1v2h-1c-1 0-1.3.6-1.3 1.2V8h2.2l-.4 2.3H7.3v5.6C11.1 15.3 14 12 14 8c0-4.4-3.6-8-8-8z" fill="#1877F2"/>

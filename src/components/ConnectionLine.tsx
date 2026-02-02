@@ -1,5 +1,6 @@
 import React from 'react';
 import { Connection, Node } from '../types';
+import { getNodeHeight, getNodeWidth } from './Node';
 
 interface ConnectionLineProps {
   connection: Connection;
@@ -12,10 +13,10 @@ export const ConnectionLine: React.FC<ConnectionLineProps> = ({
   sourceNode,
   targetNode,
 }) => {
-  const sourceX = sourceNode.position.x + 200; // Right edge
-  const sourceY = sourceNode.position.y + 32; // Center
+  const sourceX = sourceNode.position.x + getNodeWidth(sourceNode); // Right edge
+  const sourceY = sourceNode.position.y + getNodeHeight(sourceNode) / 2; // Center
   const targetX = targetNode.position.x; // Left edge
-  const targetY = targetNode.position.y + 32; // Center
+  const targetY = targetNode.position.y + getNodeHeight(targetNode) / 2; // Center
 
   // Calculate control points for Bezier curve
   const dx = targetX - sourceX;

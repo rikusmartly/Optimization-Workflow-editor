@@ -2,12 +2,13 @@ import { useState, useCallback } from 'react';
 import { Node, Connection, NodeType } from './types';
 import { NodeBasedTriggerEditor } from './components/NodeBasedTriggerEditor';
 import { TopNavigation } from './components/TopNavigation';
-import { Toolbar } from './components/Toolbar';
 import { NodeToolbar } from './components/NodeToolbar';
 import { OptimizationHome } from './components/OptimizationHome';
 import { FloatingPromptInput } from './components/FloatingPromptInput';
 import { InsightChatPanel } from './components/InsightChatPanel';
+import { Toast } from './components/Toast';
 import { createDefaultNodes } from './utils/mockData';
+import { addDraft } from './utils/drafts';
 
 function App() {
   const [currentView, setCurrentView] = useState<'home' | 'workflow'>('home');
@@ -16,8 +17,27 @@ function App() {
   const [connections, setConnections] = useState<Connection[]>(() => createDefaultNodes().connections);
   const [zoom, setZoom] = useState(1);
   const [showChatPanel, setShowChatPanel] = useState(false);
+  const [showSaveToast, setShowSaveToast] = useState(false);
   const [history, setHistory] = useState<Array<{ nodes: Node[]; connections: Connection[] }>>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
+
+  const handleAddNodeAtPosition = useCallback((type: NodeType, position: { x: number; y: number }) => {
+    const newNode: Node = {
+      id: `node-${Date.now()}`,
+      type,
+      name: type === 'scope' ? 'New Scope' :
+            type === 'schedule' ? 'Schedule' :
+            type === 'condition' ? 'Condition' :
+            type === 'note' ? 'Note' : 'Action',
+      position,
+      ...(type === 'scope' && { scope: { accounts: [] } }),
+      ...(type === 'schedule' && { schedule: { frequency: 'daily', time: '15:59' } }),
+      ...(type === 'condition' && { condition: { id: 'cond-1', metric: 'ROAS', operator: 'less_than', value: 1.5 } }),
+      ...(type === 'action' && { action: { id: 'action-1', type: 'pause' } }),
+      ...(type === 'note' && { note: { content: '' } }),
+    };
+    setNodes(prev => [...prev, newNode]);
+  }, []);
 
   const handleAddNode = useCallback((type: NodeType | 'template') => {
     if (type === 'template') {
@@ -72,12 +92,14 @@ function App() {
         type: type as NodeType,
         name: type === 'scope' ? 'New Scope' :
               type === 'schedule' ? 'Schedule' :
-              type === 'condition' ? 'Condition' : 'Action',
+              type === 'condition' ? 'Condition' :
+              type === 'note' ? 'Note' : 'Action',
         position: { x: 200, y: 200 },
         ...(type === 'scope' && { scope: { accounts: [] } }),
         ...(type === 'schedule' && { schedule: { frequency: 'daily', time: '15:59' } }),
         ...(type === 'condition' && { condition: { id: 'cond-1', metric: 'ROAS', operator: 'less_than', value: 1.5 } }),
         ...(type === 'action' && { action: { id: 'action-1', type: 'pause' } }),
+        ...(type === 'note' && { note: { content: '' } }),
       };
       setNodes(prev => [...prev, newNode]);
     }
@@ -126,6 +148,11 @@ function App() {
     }
   };
 
+  const handleSaveDraft = useCallback(() => {
+    addDraft(workflowName, nodes, connections);
+    setShowSaveToast(true);
+  }, [workflowName, nodes, connections]);
+
   const handleDelete = () => {
     // Delete selected nodes (would need to track selection in editor)
     // For now, just a placeholder
@@ -142,9 +169,31 @@ function App() {
     alert('Workflow activated and published!');
   };
 
+  const handleOpenDraft = useCallback(
+    (draft: { workflowName: string; nodes: Node[]; connections: Connection[] }) => {
+      setWorkflowName(draft.workflowName);
+      setNodes(draft.nodes);
+      setConnections(draft.connections);
+      setCurrentView('workflow');
+    },
+    []
+  );
+
+  const handleCreateNewWorkflow = useCallback(() => {
+    setWorkflowName('New workflow');
+    setNodes([]);
+    setConnections([]);
+    setHistory([]);
+    setHistoryIndex(-1);
+    setCurrentView('workflow');
+  }, []);
+
   if (currentView === 'home') {
     return (
-      <OptimizationHome onNavigateToWorkflowBuilder={() => setCurrentView('workflow')} />
+      <OptimizationHome
+        onNavigateToWorkflowBuilder={handleCreateNewWorkflow}
+        onOpenDraft={handleOpenDraft}
+      />
     );
   }
 
@@ -157,6 +206,7 @@ function App() {
           connections={connections}
           onNodesChange={handleNodesChange}
           onConnectionsChange={handleConnectionsChange}
+          onAddNodeAtPosition={handleAddNodeAtPosition}
           zoom={zoom}
           onZoomChange={setZoom}
           onResetView={handleResetView}
@@ -169,22 +219,27 @@ function App() {
         onWorkflowNameChange={setWorkflowName}
         onDeleteCanvas={handleDeleteCanvas}
         onActivatePublish={handleActivatePublish}
+        onSaveDraft={handleSaveDraft}
         onNavigateToHome={() => setCurrentView('home')}
-      />
-      <Toolbar
+        zoom={zoom}
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
         onResetView={handleResetView}
         onUndo={handleUndo}
         onRedo={handleRedo}
         onDelete={handleDelete}
-        zoom={zoom}
         canUndo={historyIndex > 0}
         canRedo={historyIndex < history.length - 1}
       />
       <NodeToolbar onAddNode={handleAddNode} />
       <FloatingPromptInput onFocus={() => setShowChatPanel(true)} />
       <InsightChatPanel isOpen={showChatPanel} onClose={() => setShowChatPanel(false)} />
+      <Toast
+        message="Workflow saved successfully"
+        visible={showSaveToast}
+        onDismiss={() => setShowSaveToast(false)}
+        duration={3000}
+      />
     </div>
   );
 }
