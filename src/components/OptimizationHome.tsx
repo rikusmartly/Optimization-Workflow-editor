@@ -2,6 +2,77 @@ import React, { useState, useEffect } from 'react';
 import logoImage from '../assets/logo.png';
 import { getMyOptimizations, deleteDraft, type SavedOptimization } from '../utils/drafts';
 
+const EventCaseIconOk = () => (
+  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="shrink-0" aria-hidden>
+    <path d="M3 8l3 3 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+const EventCaseIconWarning = () => (
+  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="shrink-0" aria-hidden>
+    <path d="M8 2L1 14h14L8 2zM8 6v3M8 11h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+  </svg>
+);
+const EventCaseIconFailed = () => (
+  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="shrink-0" aria-hidden>
+    <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+);
+const EventCaseIconOnly = () => (
+  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="shrink-0" aria-hidden>
+    <circle cx="8" cy="8" r="2.5" stroke="currentColor" strokeWidth="1.5"/>
+    <path d="M8 2v1.5M8 12.5V14M14 8h-1.5M3.5 8H2M12.2 3.8l-1 1.1M4.8 11.2l-1 1.1M11.2 11.2l1 1.1M3.8 3.8l1 1.1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+  </svg>
+);
+const EventCaseIconNoChange = () => (
+  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="shrink-0" aria-hidden>
+    <path d="M8 2a6 6 0 016 6c0 2-1.5 3.5-3 4.5A6 6 0 012 8a6 6 0 016-6z" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+  </svg>
+);
+
+const OutcomeIconActivated = () => (
+  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" className="inline-block align-middle shrink-0 text-emerald-600" aria-hidden>
+    <path d="M8 12V4M8 4L5 7M8 4l3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+const OutcomeIconPaused = () => (
+  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" className="inline-block align-middle shrink-0 text-amber-600" aria-hidden>
+    <path d="M6 4h1v8H6V4zm3 0h1v8H9V4z" fill="currentColor"/>
+  </svg>
+);
+const OutcomeIconFailed = () => (
+  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" className="inline-block align-middle shrink-0 text-red-600" aria-hidden>
+    <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+);
+const OutcomeIconOk = () => (
+  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" className="inline-block align-middle shrink-0 text-emerald-600" aria-hidden>
+    <path d="M3 8l3 3 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+const OutcomeIconArrow = () => (
+  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" className="inline-block align-middle shrink-0 text-gray-500" aria-hidden>
+    <path d="M4 8h6M9 6l2 2-2 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const OUTCOME_EMOJI_ICONS: Record<string, React.ReactNode> = {
+  '🔼': <OutcomeIconActivated />,
+  '⏸️': <OutcomeIconPaused />,
+  '❌': <OutcomeIconFailed />,
+  '✅': <OutcomeIconOk />,
+  '→': <OutcomeIconArrow />,
+};
+const OUTCOME_EMOJI_REGEX = /(🔼|⏸️|❌|✅|→)/g;
+
+function renderOutcomeWithIcons(text: string): React.ReactNode {
+  const parts = text.split(OUTCOME_EMOJI_REGEX).filter(Boolean);
+  return parts.map((part, i) => {
+    const icon = OUTCOME_EMOJI_ICONS[part];
+    if (icon) return <React.Fragment key={i}>{icon}</React.Fragment>;
+    return <React.Fragment key={i}>{part}</React.Fragment>;
+  });
+}
+
 interface OptimizationHomeProps {
   onNavigateToWorkflowBuilder: () => void;
   onOpenDraft?: (draft: SavedOptimization) => void;
@@ -13,6 +84,7 @@ export const OptimizationHome: React.FC<OptimizationHomeProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'home' | 'my-optimizations' | 'events'>('home');
   const [drafts, setDrafts] = useState<SavedOptimization[]>(() => getMyOptimizations());
+  const [eventsLogActionsOpen, setEventsLogActionsOpen] = useState<number | null>(null);
 
   useEffect(() => {
     if (activeTab === 'my-optimizations') {
@@ -164,7 +236,7 @@ export const OptimizationHome: React.FC<OptimizationHomeProps> = ({
 
               {/* Description */}
               <p className="text-gray-600 text-lg max-w-3xl">
-                Make the most out of your campaigns by using one of our optimization tools or templates or simply by creating your own optimization workflows that suit your needs.
+                Make the most out of your campaigns by using one of our optimization tools or templates or simply by creating your own custom optimization workflows that suit your needs.
               </p>
             </div>
 
@@ -227,7 +299,7 @@ export const OptimizationHome: React.FC<OptimizationHomeProps> = ({
                 Draft workflows you’ve saved from the workflow builder. Open one to continue editing.
               </p>
               {drafts.length === 0 ? (
-                    <div className="bg-white rounded-lg border border-gray-200 p-8 text-center text-gray-500">
+                    <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center text-gray-500">
                       <p className="mb-2">No saved drafts yet.</p>
                       <p className="text-sm mb-4">Create a workflow and use “Save draft” in the top bar to add it here.</p>
                       <button
@@ -242,7 +314,7 @@ export const OptimizationHome: React.FC<OptimizationHomeProps> = ({
                     {drafts.map((draft) => (
                       <div
                         key={draft.id}
-                        className="bg-white rounded-lg border border-gray-200 p-4 hover:border-purple-200 transition-colors flex flex-col"
+                        className="bg-white rounded-2xl border border-gray-200 p-4 hover:border-purple-200 transition-colors flex flex-col"
                       >
                         <div className="flex items-start justify-between gap-2 mb-1">
                           <h3 className="font-semibold text-gray-900 truncate flex-1 min-w-0">{draft.workflowName}</h3>
@@ -293,22 +365,22 @@ export const OptimizationHome: React.FC<OptimizationHomeProps> = ({
             </div>
             <div className="grid grid-cols-3 gap-4">
               {latestOptimizationEvents.slice(0, 3).map((evt) => (
-                <div key={evt.id} className="bg-white rounded-lg border border-gray-200 p-6 flex flex-col">
+                <div key={evt.id} className="bg-white rounded-2xl border border-gray-200 p-6 flex flex-col">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-lg font-semibold text-gray-900">{evt.tool}</h3>
                     <span className="text-sm text-gray-500">{evt.timestamp}</span>
                   </div>
-                  <span className={`inline-flex items-center w-fit px-2 py-0.5 rounded text-sm font-medium mb-3 ${
+                  <span className={`inline-flex items-center gap-1.5 w-fit px-2 py-0.5 rounded text-sm font-medium mb-3 ${
                     evt.case === 'ok' ? 'bg-emerald-100 text-emerald-800' :
                     evt.case === 'no_change' ? 'bg-slate-100 text-slate-700' :
                     evt.case.startsWith('partial') ? 'bg-amber-100 text-amber-800' :
                     evt.case === 'activation_failed' || evt.case === 'pause_failed' || evt.case === 'both_failed' ? 'bg-red-100 text-red-800' :
                     'bg-blue-100 text-blue-800'
                   }`}>
-                    {evt.case === 'ok' ? '✅' : evt.case === 'no_change' ? '💤' : evt.case.startsWith('partial') ? '⚠️' : evt.case.includes('failed') ? '❌' : '⚙️'}
-                    {' '}{evt.caseLabel}
+                    {evt.case === 'ok' ? <EventCaseIconOk /> : evt.case === 'no_change' ? <EventCaseIconNoChange /> : evt.case.startsWith('partial') ? <EventCaseIconWarning /> : evt.case.includes('failed') ? <EventCaseIconFailed /> : <EventCaseIconOnly />}
+                    {evt.caseLabel}
                   </span>
-                  <p className="text-sm text-gray-600 flex-1 line-clamp-4" title={evt.logMessage}>{evt.logMessage}</p>
+                  <p className="text-sm text-gray-600 flex-1 line-clamp-4 flex flex-wrap items-center gap-x-0.5 gap-y-0.5" title={evt.logMessage}>{renderOutcomeWithIcons(evt.logMessage)}</p>
                 </div>
               ))}
             </div>
@@ -322,7 +394,7 @@ export const OptimizationHome: React.FC<OptimizationHomeProps> = ({
             </div>
             <div className="grid grid-cols-3 gap-4">
               {workflowTemplates.map((t, i) => (
-                <div key={t.key} className="bg-white rounded-lg border border-gray-200 p-6 flex flex-col">
+                <div key={t.key} className="bg-white rounded-2xl border border-gray-200 p-6 flex flex-col">
                   <div className={`w-16 h-16 rounded-lg flex items-center justify-center flex-shrink-0 mb-4 ${
                     t.key === 'inventory' ? 'bg-emerald-100' : t.key === 'weekend' ? 'bg-amber-100' : 'bg-blue-100'
                   }`}>
@@ -362,13 +434,8 @@ export const OptimizationHome: React.FC<OptimizationHomeProps> = ({
             </div>
             <div className="grid grid-cols-3 gap-4">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-white rounded-lg border border-gray-200 p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold text-gray-900">Channel Efficiency Insights</h3>
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                      <path d="M3 15L10 8l7 7" stroke="#9138ea" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </div>
+                <div key={i} className="bg-white rounded-2xl border border-gray-200 p-6">
+                  <h3 className="font-semibold text-gray-900 mb-4">Channel Efficiency Insights</h3>
                   <p className="text-sm text-gray-500 mb-3">16th July to 23rd July 2025</p>
                   <p className="text-sm text-gray-700 mb-4">
                     TikTok yields cheaper conversions than Meta. CPA: -20%. Spend share: Meta 60% / TikTok 25%.
@@ -390,7 +457,7 @@ export const OptimizationHome: React.FC<OptimizationHomeProps> = ({
             </div>
             <div className="grid grid-cols-3 gap-4">
               {tools.map((t, i) => (
-                <div key={i} className="bg-white rounded-lg border border-gray-200 p-6 flex flex-col">
+                <div key={i} className="bg-white rounded-2xl border border-gray-200 p-6 flex flex-col">
                   <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 mb-4">
                     <svg width="32" height="32" viewBox="0 0 64 64" fill="none">
                       <rect x="8" y="8" width="48" height="48" rx="4" fill="#9CA3AF" fillOpacity="0.3"/>
@@ -418,7 +485,7 @@ export const OptimizationHome: React.FC<OptimizationHomeProps> = ({
               <p className="text-gray-600 mb-6">
                 A log of optimization runs: what ran and when. Completed, failed, and scheduled runs appear here.
               </p>
-              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm">
                     <thead>
@@ -427,6 +494,7 @@ export const OptimizationHome: React.FC<OptimizationHomeProps> = ({
                         <th className="px-4 py-3 font-semibold text-gray-700">Workflow</th>
                         <th className="px-4 py-3 font-semibold text-gray-700">Status</th>
                         <th className="px-4 py-3 font-semibold text-gray-700">Outcome</th>
+                        <th className="px-4 py-3 font-semibold text-gray-700 w-16 text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -435,15 +503,48 @@ export const OptimizationHome: React.FC<OptimizationHomeProps> = ({
                           <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{evt.time}</td>
                           <td className="px-4 py-3 font-medium text-gray-900">{evt.workflow}</td>
                           <td className="px-4 py-3">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium ${
                               evt.status === 'Completed' ? 'bg-emerald-100 text-emerald-800' :
                               evt.status === 'Partial' ? 'bg-amber-100 text-amber-800' :
                               'bg-red-100 text-red-800'
                             }`}>
+                              {evt.status === 'Completed' ? <EventCaseIconOk /> : evt.status === 'Partial' ? <EventCaseIconWarning /> : <EventCaseIconFailed />}
                               {evt.status}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-gray-700 text-sm max-w-md truncate" title={evt.outcome}>{evt.outcome}</td>
+                          <td className="px-4 py-3 text-gray-700 text-sm max-w-md truncate flex flex-wrap items-center gap-x-0.5 gap-y-0.5" title={evt.outcome}>{renderOutcomeWithIcons(evt.outcome)}</td>
+                          <td className="px-4 py-3 text-right align-top">
+                            <div className="relative inline-block">
+                              <button
+                                type="button"
+                                onClick={() => setEventsLogActionsOpen(eventsLogActionsOpen === idx ? null : idx)}
+                                className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded"
+                                aria-expanded={eventsLogActionsOpen === idx}
+                                aria-haspopup="true"
+                                aria-label="Actions"
+                              >
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+                                  <circle cx="8" cy="4" r="1.25" fill="currentColor"/>
+                                  <circle cx="8" cy="8" r="1.25" fill="currentColor"/>
+                                  <circle cx="8" cy="12" r="1.25" fill="currentColor"/>
+                                </svg>
+                              </button>
+                              {eventsLogActionsOpen === idx && (
+                                <>
+                                  <div className="fixed inset-0 z-10" aria-hidden onClick={() => setEventsLogActionsOpen(null)} />
+                                  <div className="absolute right-0 top-full mt-1 z-20 w-44 bg-white rounded-2xl border border-gray-200 shadow-lg py-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => { setEventsLogActionsOpen(null); onNavigateToWorkflowBuilder(); }}
+                                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                    >
+                                      View in builder
+                                    </button>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          </td>
                         </tr>
                       ))}
                     </tbody>

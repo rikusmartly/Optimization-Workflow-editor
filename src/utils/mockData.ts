@@ -65,6 +65,18 @@ export const mockAccountGroups: AccountGroup[] = [
   },
 ];
 
+/** Returns { id, name } for each selected account ID (name from mock groups, or id if not found). */
+export function getSelectedAccountsDisplay(accountIds: string[] | undefined): { id: string; name: string }[] {
+  if (!accountIds || accountIds.length === 0) return [];
+  const idToName = new Map<string, string>();
+  for (const group of mockAccountGroups) {
+    for (const acc of group.accounts) {
+      idToName.set(acc.id, acc.name);
+    }
+  }
+  return accountIds.map((id) => ({ id, name: idToName.get(id) ?? id }));
+}
+
 export const createDefaultNodes = (): { nodes: Node[]; connections: Connection[] } => {
   const nodes: Node[] = [
     {

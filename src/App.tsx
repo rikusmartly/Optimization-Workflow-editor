@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Node, Connection, NodeType } from './types';
-import { NodeBasedTriggerEditor } from './components/NodeBasedTriggerEditor';
+import { NodeBasedTriggerEditor, NodeBasedTriggerEditorHandle } from './components/NodeBasedTriggerEditor';
 import { TopNavigation } from './components/TopNavigation';
 import { NodeToolbar } from './components/NodeToolbar';
 import { OptimizationHome } from './components/OptimizationHome';
@@ -20,6 +20,8 @@ function App() {
   const [showSaveToast, setShowSaveToast] = useState(false);
   const [history, setHistory] = useState<Array<{ nodes: Node[]; connections: Connection[] }>>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
+  const [selectedNodeCount, setSelectedNodeCount] = useState(0);
+  const editorRef = useRef<NodeBasedTriggerEditorHandle>(null);
 
   const handleAddNodeAtPosition = useCallback((type: NodeType, position: { x: number; y: number }) => {
     const newNode: Node = {
@@ -202,6 +204,7 @@ function App() {
       {/* Canvas - extends full screen behind headers */}
       <div className="absolute inset-0">
         <NodeBasedTriggerEditor
+          ref={editorRef}
           nodes={nodes}
           connections={connections}
           onNodesChange={handleNodesChange}
@@ -210,6 +213,7 @@ function App() {
           zoom={zoom}
           onZoomChange={setZoom}
           onResetView={handleResetView}
+          onSelectionChange={(ids) => setSelectedNodeCount(ids.length)}
         />
       </div>
       
@@ -230,6 +234,9 @@ function App() {
         onDelete={handleDelete}
         canUndo={historyIndex > 0}
         canRedo={historyIndex < history.length - 1}
+        selectedNodeCount={selectedNodeCount}
+        onDeselectNodes={() => editorRef.current?.deselectAll()}
+        onDuplicateNodes={() => editorRef.current?.duplicateSelected()}
       />
       <NodeToolbar onAddNode={handleAddNode} />
       <FloatingPromptInput onFocus={() => setShowChatPanel(true)} />

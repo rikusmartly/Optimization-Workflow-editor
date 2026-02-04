@@ -1,9 +1,14 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { Node, Connection } from '../types';
 import { Node as NodeComponent, NODE_WIDTH, getNodeHeight, getNodeWidth } from './Node';
 import { ConnectionLine } from './ConnectionLine';
 import { NodeSettingsPanel } from './NodeSettingsPanel';
 import { ScopeSelectionDialog } from './ScopeSelectionDialog';
+
+export interface NodeBasedTriggerEditorHandle {
+  deselectAll: () => void;
+  duplicateSelected: () => void;
+}
 
 interface NodeBasedTriggerEditorProps {
   nodes: Node[];
@@ -14,9 +19,10 @@ interface NodeBasedTriggerEditorProps {
   zoom?: number;
   onZoomChange?: (zoom: number) => void;
   onResetView?: () => void;
+  onSelectionChange?: (ids: string[]) => void;
 }
 
-export const NodeBasedTriggerEditor: React.FC<NodeBasedTriggerEditorProps> = ({
+export const NodeBasedTriggerEditor = forwardRef<NodeBasedTriggerEditorHandle, NodeBasedTriggerEditorProps>(({
   nodes,
   connections,
   onNodesChange,
@@ -25,7 +31,8 @@ export const NodeBasedTriggerEditor: React.FC<NodeBasedTriggerEditorProps> = ({
   zoom: externalZoom,
   onZoomChange,
   onResetView,
-}) => {
+  onSelectionChange,
+}, ref) => {
   const [internalZoom, setInternalZoom] = useState(1);
   const zoom = externalZoom !== undefined ? externalZoom : internalZoom;
   const setZoom = onZoomChange || setInternalZoom;
@@ -64,12 +71,17 @@ export const NodeBasedTriggerEditor: React.FC<NodeBasedTriggerEditorProps> = ({
     return { minX, minY, maxX, maxY };
   }, [nodes]);
 
-  // Handle canvas panning
+  // Handle canvas panning (start when clicking SVG or background rect; nodes/connections are inside transformed <g>)
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (e.button === 0 && e.target === canvasRef.current) {
+    const target = e.target as Element;
+    const isCanvasBackground =
+      target === canvasRef.current ||
+      target.getAttribute?.('data-canvas-background') === 'true';
+    if (e.button === 0 && isCanvasBackground) {
+      setSelectedNodeIds(new Set());
       isPanning.current = true;
       panStart.current = { x: e.clientX - panOffset.x, y: e.clientY - panOffset.y };
-      (e.target as HTMLElement).style.cursor = 'grabbing';
+      if (canvasRef.current) canvasRef.current.style.cursor = 'grabbing';
     }
   }, [panOffset]);
 
@@ -184,12 +196,14 @@ export const NodeBasedTriggerEditor: React.FC<NodeBasedTriggerEditorProps> = ({
     }
   }, []);
 
-  // Handle node dragging
+  // Handle node dragging (when modifier key held, don't overwrite selection – handleNodeSelect already updated it)
   const handleNodeDragStart = useCallback((e: React.MouseEvent, nodeId: string) => {
     e.stopPropagation();
     setDragging(true);
     setDragStart({ x: e.clientX, y: e.clientY });
-    if (selectedNodeIds.has(nodeId)) {
+    if (e.ctrlKey || e.metaKey) {
+      setDraggedNodeIds(new Set([...selectedNodeIds, nodeId]));
+    } else if (selectedNodeIds.has(nodeId)) {
       setDraggedNodeIds(selectedNodeIds);
     } else {
       setDraggedNodeIds(new Set([nodeId]));
@@ -250,7 +264,7 @@ export const NodeBasedTriggerEditor: React.FC<NodeBasedTriggerEditorProps> = ({
     setSelectedNodeIds(new Set());
   }, [nodes, connections, onNodesChange, onConnectionsChange]);
 
-  // Handle node duplicate
+  // Handle node duplicate (single node – used by NodeSettingsPanel)
   const handleNodeDuplicate = useCallback((nodeId: string) => {
     const node = nodes.find(n => n.id === nodeId);
     if (node) {
@@ -262,6 +276,36 @@ export const NodeBasedTriggerEditor: React.FC<NodeBasedTriggerEditorProps> = ({
       onNodesChange([...nodes, newNode]);
     }
   }, [nodes, onNodesChange]);
+
+  // Duplicate all selected nodes (multi-select)
+  const handleDuplicateSelected = useCallback(() => {
+    const selected = nodes.filter(n => selectedNodeIds.has(n.id));
+    if (selected.length === 0) return;
+    const base = Date.now();
+    const newNodes: Node[] = selected.map((node, i) => ({
+      ...node,
+      id: `node-${base}-${i}`,
+      position: {
+        x: node.position.x + 50 + i * 60,
+        y: node.position.y + 50,
+      },
+    }));
+    onNodesChange([...nodes, ...newNodes]);
+    setSelectedNodeIds(new Set(newNodes.map(n => n.id)));
+  }, [nodes, selectedNodeIds, onNodesChange]);
+
+  const handleDeselectAll = useCallback(() => {
+    setSelectedNodeIds(new Set());
+  }, []);
+
+  useEffect(() => {
+    onSelectionChange?.(Array.from(selectedNodeIds));
+  }, [selectedNodeIds, onSelectionChange]);
+
+  useImperativeHandle(ref, () => ({
+    deselectAll: handleDeselectAll,
+    duplicateSelected: handleDuplicateSelected,
+  }), [handleDeselectAll, handleDuplicateSelected]);
 
   const selectedNode = selectedNodeIds.size === 1 ? nodes.find(n => selectedNodeIds.has(n.id)) : null;
 
@@ -324,16 +368,30 @@ export const NodeBasedTriggerEditor: React.FC<NodeBasedTriggerEditorProps> = ({
     <div className="relative w-full h-full overflow-hidden">
       <svg
         ref={canvasRef}
-        className="w-full h-full canvas-grid"
+        className="w-full h-full"
+        style={{ cursor: 'grab', backgroundColor: '#f8f8f8' }}
         onMouseDown={handleMouseDown}
         onWheel={handleWheel}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
-        style={{ cursor: 'grab' }}
         width={canvasBounds.maxX}
         height={canvasBounds.maxY}
       >
+        <defs>
+          <pattern id="canvas-dots" x="0" y="0" width="12" height="12" patternUnits="userSpaceOnUse">
+            <circle cx="6" cy="6" r="1" fill="#e0e0e0" />
+          </pattern>
+        </defs>
         <g ref={contentGroupRef} transform={`translate(${panOffset.x}, ${panOffset.y}) scale(${zoom})`}>
+          {/* Dotted background – moves with pan/zoom; data attr so pan starts when clicking here */}
+          <rect
+            data-canvas-background="true"
+            x={canvasBounds.minX}
+            y={canvasBounds.minY}
+            width={canvasBounds.maxX - canvasBounds.minX}
+            height={canvasBounds.maxY - canvasBounds.minY}
+            fill="url(#canvas-dots)"
+          />
           {/* Connection lines */}
           {connections.map(conn => {
             const sourceNode = nodes.find(n => n.id === conn.sourceId);
@@ -409,4 +467,4 @@ export const NodeBasedTriggerEditor: React.FC<NodeBasedTriggerEditorProps> = ({
       )}
     </div>
   );
-};
+});

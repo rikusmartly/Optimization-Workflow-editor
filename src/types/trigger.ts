@@ -56,11 +56,23 @@ export const LOOKBACK_OPTIONS: { value: string; label: string }[] = [
   { value: 'last_quarter', label: 'Last quarter' },
 ];
 
+/** Unit options for condition value (currency, percent, etc.). */
+export const CONDITION_UNIT_OPTIONS: { value: string; label: string }[] = [
+  { value: '', label: 'None' },
+  { value: 'EUR', label: 'EUR' },
+  { value: 'USD', label: 'USD' },
+  { value: 'GBP', label: 'GBP' },
+  { value: 'percent', label: 'Percent' },
+  { value: 'absolute', label: 'Absolute' },
+];
+
 export interface Condition {
   id: string;
   metric: string;
   operator: ConditionOperator;
   value: string | number;
+  /** Unit for value (e.g. EUR, USD, percent) */
+  unit?: string;
   /** Use case preset (optional) */
   useCase?: UseCaseType;
   /** For anomaly or metric: compare to previous period */

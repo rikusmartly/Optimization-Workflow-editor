@@ -119,30 +119,12 @@ const MIN_NODE_HEIGHT = 64;
 const DESC_TEXT_WIDTH = NODE_WIDTH - 56 - PADDING_LEFT - PADDING_RIGHT; // ~128px
 const CHARS_PER_LINE = Math.floor(DESC_TEXT_WIDTH / 7);
 
-/** Wraps description text into lines that fit within the node width. */
-function wrapDescription(fullText: string): string[] {
-  if (!fullText.trim()) return [];
-  const words = fullText.trim().split(/\s+/);
-  const lines: string[] = [];
-  let current = '';
-  for (const word of words) {
-    const withWord = current ? `${current} ${word}` : word;
-    if (withWord.length <= CHARS_PER_LINE) {
-      current = withWord;
-    } else {
-      if (current) lines.push(current);
-      if (word.length > CHARS_PER_LINE) {
-        for (let i = 0; i < word.length; i += CHARS_PER_LINE) {
-          lines.push(word.slice(i, i + CHARS_PER_LINE));
-        }
-        current = '';
-      } else {
-        current = word;
-      }
-    }
-  }
-  if (current) lines.push(current);
-  return lines;
+/** Truncates description to a single line with ellipsis if needed. */
+function truncateToSingleLine(fullText: string): string {
+  const t = fullText.trim();
+  if (!t) return '';
+  if (t.length <= CHARS_PER_LINE) return t;
+  return t.slice(0, CHARS_PER_LINE - 3) + '...';
 }
 
 /** Full description string for a node (used for wrapping). */
@@ -181,9 +163,10 @@ function getNoteContentLines(node: NodeType): string[] {
   return lines.length ? lines : ['Add your note...'];
 }
 
-/** Wrapped description lines for layout/height. */
+/** Single-line description for layout/height (no wrapping). */
 export function getWrappedDescription(node: NodeType): string[] {
-  return wrapDescription(getDescriptionText(node));
+  const text = truncateToSingleLine(getDescriptionText(node));
+  return text ? [text] : [];
 }
 
 /** Returns node height in px based on wrapped description line count. */

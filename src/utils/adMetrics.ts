@@ -234,3 +234,45 @@ export const AD_METRIC_CATEGORIES: MetricCategory[] = [
     ],
   },
 ];
+
+/**
+ * Single list of all ad metrics to select from (Metric trigger section only).
+ * Name trigger section uses NAME_METRICS below.
+ */
+export const ALL_SELECTABLE_AD_METRICS: MetricOption[] = AD_METRIC_CATEGORIES.flatMap((c) => c.metrics);
+
+/** Metrics whose label or value contains "name" or "id" (case-insensitive) — excluded from Metric trigger. */
+function isNameOrIdMetric(m: MetricOption): boolean {
+  const lower = m.label.toLowerCase();
+  const valueLower = m.value.toLowerCase();
+  return lower.includes('name') || valueLower.includes('name') || lower.includes('id') || valueLower.includes('id');
+}
+
+/** Name or ID section options — explicit list for the Name or ID trigger dropdown (same value/label). */
+export const NAME_METRICS: MetricOption[] = [
+  { value: 'Video Template Name (Meta)', label: 'Video Template Name (Meta)' },
+  { value: 'Creative Elements (Text)', label: 'Creative Elements (Text)' },
+  { value: 'Location Name (Meta)', label: 'Location Name (Meta)' },
+  { value: 'Meta Breakdowns', label: 'Meta Breakdowns' },
+  { value: 'Canvas Component Name (Meta)', label: 'Canvas Component Name (Meta)' },
+  { value: 'Carousel Card Name (Meta)', label: 'Carousel Card Name (Meta)' },
+  { value: 'Place Page Name (Meta)', label: 'Place Page Name (Meta)' },
+  { value: 'Shared Columns', label: 'Shared Columns' },
+  { value: 'Name', label: 'Name' },
+  { value: 'Shared Dimensions', label: 'Shared Dimensions' },
+  { value: 'Martti Common campaign name jee', label: 'Martti Common campaign name jee' },
+  { value: 'Product ID (Ad Set Name Test) (Meta)', label: 'Product ID (Ad Set Name Test) (Meta)' },
+  { value: 'Targeting', label: 'Targeting' },
+  { value: 'Segment Names', label: 'Segment Names' },
+  { value: 'Workspaces', label: 'Workspaces' },
+  { value: 'Campaign Workspace Name (Meta)', label: 'Campaign Workspace Name (Meta)' },
+  { value: 'Workspace Name', label: 'Workspace Name' },
+];
+
+export const AD_METRIC_NAME_VALUES = new Set(NAME_METRICS.map((m) => m.value));
+
+/** Ad metric categories with name/ID metrics removed — shown in the Metric trigger section. */
+export const AD_METRIC_CATEGORIES_WITHOUT_NAME: MetricCategory[] = AD_METRIC_CATEGORIES.map((cat) => ({
+  label: cat.label,
+  metrics: cat.metrics.filter((m) => !isNameOrIdMetric(m)),
+})).filter((cat) => cat.metrics.length > 0);

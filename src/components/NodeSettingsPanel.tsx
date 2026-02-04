@@ -8,9 +8,11 @@ import {
   WeatherCondition,
   MatchResult,
   LOOKBACK_OPTIONS,
+  CONDITION_UNIT_OPTIONS,
 } from '../types';
-import { EXTERNAL_DATA_SOURCES, EXTERNAL_DATA_SOURCE_VALUES, AD_METRIC_CATEGORIES } from '../utils/adMetrics';
-import { getMatchingAds } from '../utils/mockData';
+import { EXTERNAL_DATA_SOURCES, EXTERNAL_DATA_SOURCE_VALUES, AD_METRIC_CATEGORIES_WITHOUT_NAME, AD_METRIC_NAME_VALUES, NAME_METRICS } from '../utils/adMetrics';
+import { SearchableSelect } from './SearchableSelect';
+import { getMatchingAds, getSelectedAccountsDisplay } from '../utils/mockData';
 
 interface NodeSettingsPanelProps {
   node: Node;
@@ -104,7 +106,7 @@ export const NodeSettingsPanel: React.FC<NodeSettingsPanelProps> = ({
       </div>
 
       {/* Content - match toolbar section padding and labels */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-5">
+      <div className="flex-1 flex flex-col min-h-0 overflow-y-auto p-3 space-y-5">
         {/* Name Field */}
         <div>
           <label className="block text-xs font-semibold text-gray-500 mb-1.5">Name</label>
@@ -112,15 +114,15 @@ export const NodeSettingsPanel: React.FC<NodeSettingsPanelProps> = ({
             type="text"
             value={localNode.name}
             onChange={(e) => handleNameChange(e.target.value)}
-            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-primary focus:border-transparent"
+            className="w-full pl-3 pr-8 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-primary focus:border-transparent"
           />
         </div>
 
         {/* Type-Specific Settings */}
         {localNode.type === 'scope' && (
-          <div>
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Scope Settings</h3>
-            <div className="space-y-3">
+          <div className="flex-1 flex flex-col min-h-0">
+            <div className="shrink-0 space-y-3">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Scope Settings</h3>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1.5">Name contains</label>
                 <input
@@ -131,7 +133,7 @@ export const NodeSettingsPanel: React.FC<NodeSettingsPanelProps> = ({
                     scope: { ...localNode.scope, accounts: localNode.scope?.accounts, campaigns: localNode.scope?.campaigns, adsets: localNode.scope?.adsets, nameContains: e.target.value || undefined },
                   })}
                   placeholder="e.g. Brand, Summer"
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-primary focus:border-transparent"
+                  className="w-full pl-3 pr-8 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-primary focus:border-transparent"
                 />
               </div>
               <button
@@ -144,36 +146,31 @@ export const NodeSettingsPanel: React.FC<NodeSettingsPanelProps> = ({
                 </svg>
                 Select accounts
               </button>
-              {localNode.scope?.accounts && localNode.scope.accounts.length > 0 && (
-                <p className="text-sm text-gray-600">
-                  {localNode.scope.accounts.length} account(s) selected
-                </p>
-              )}
-              {(() => {
-                const matching = getMatchingAds(localNode.scope);
-                return (
-                  <div>
-                    <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                      Matching items ({matching.length})
-                    </h4>
-                    <p className="text-xs text-gray-500 mb-2">
-                      Ads that fit within the selected scope and name contains filter
-                    </p>
-                    {matching.length === 0 ? (
-                      <p className="text-sm text-gray-500 py-2">No ads match. Adjust scope or name contains.</p>
-                    ) : (
-                      <div className="max-h-40 overflow-y-auto rounded-lg border border-gray-200 bg-gray-50 p-2 space-y-1">
-                        {matching.map((ad) => (
-                          <div key={ad.id} className="text-sm text-gray-800 truncate py-0.5" title={ad.name}>
-                            {ad.name}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
             </div>
+            {(() => {
+              const selected = getSelectedAccountsDisplay(localNode.scope?.accounts);
+              return (
+                <div className="flex-1 flex flex-col min-h-0 mt-3">
+                  <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 shrink-0">
+                    Selected accounts ({selected.length})
+                  </h4>
+                  <p className="text-xs text-gray-500 mb-2 shrink-0">
+                    Accounts included in this scope
+                  </p>
+                  {selected.length === 0 ? (
+                    <p className="text-sm text-gray-500 py-2 shrink-0">No accounts selected. Use &quot;Select accounts&quot; to add.</p>
+                  ) : (
+                    <div className="flex-1 min-h-0 overflow-y-auto rounded-lg border border-gray-200 bg-gray-50 p-2 space-y-1">
+                      {selected.map((acc) => (
+                        <div key={acc.id} className="text-sm text-gray-800 truncate py-0.5" title={acc.name}>
+                          {acc.name}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         )}
 
@@ -190,7 +187,7 @@ export const NodeSettingsPanel: React.FC<NodeSettingsPanelProps> = ({
                     frequency: e.target.value as ScheduleFrequency,
                     time: localNode.schedule?.time || '15:59',
                   })}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-primary focus:border-transparent"
+                  className="select-chevron w-full pl-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-primary focus:border-transparent"
                 >
                   <option value="daily">Daily</option>
                   <option value="hourly">Hourly</option>
@@ -208,7 +205,7 @@ export const NodeSettingsPanel: React.FC<NodeSettingsPanelProps> = ({
                     frequency: localNode.schedule?.frequency || 'daily',
                     time: e.target.value,
                   })}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-primary focus:border-transparent"
+                  className="w-full pl-3 pr-8 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-primary focus:border-transparent"
                 />
               </div>
               <div className="pt-2 border-t border-gray-200">
@@ -252,83 +249,180 @@ export const NodeSettingsPanel: React.FC<NodeSettingsPanelProps> = ({
         )}
 
         {localNode.type === 'condition' && (
-          <div>
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Condition Settings</h3>
-            <div className="space-y-3">
+          <div className="flex-1 flex flex-col min-h-0">
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4 shrink-0">Condition Settings</h3>
+            <div className="flex-1 flex flex-col min-h-0 space-y-3">
               <div>
-                <span className="block text-xs font-semibold text-gray-500 mb-2">Metric / External data source</span>
+                <span className="block text-xs font-semibold text-gray-500 mb-2">Trigger</span>
                 <div
                   role="radiogroup"
-                  aria-label="Metric or External data source"
-                  className="flex gap-4"
+                  aria-label="Metric, Name or ID, or External data source"
+                  className="flex rounded-lg bg-gray-200 p-0.5"
                 >
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="condition-source-type"
-                      value="metric"
-                      checked={!EXTERNAL_DATA_SOURCE_VALUES.has(localNode.condition?.metric ?? '')}
-                      onChange={() => handleConditionChange({
-                        id: localNode.condition?.id || 'cond-1',
-                        metric: 'ROAS',
-                        operator: localNode.condition?.operator || 'less_than',
-                        value: localNode.condition?.value ?? 1.5,
-                      })}
-                      className="w-4 h-4 text-purple-primary border-gray-300 focus:ring-purple-primary"
-                    />
-                    <span className="text-sm text-gray-800">Metric</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="condition-source-type"
-                      value="external"
-                      checked={EXTERNAL_DATA_SOURCE_VALUES.has(localNode.condition?.metric ?? '')}
-                      onChange={() => handleConditionChange({
-                        id: localNode.condition?.id || 'cond-1',
-                        metric: 'stock_level',
-                        operator: localNode.condition?.operator || 'less_than',
-                        value: localNode.condition?.value ?? 5,
-                      })}
-                      className="w-4 h-4 text-purple-primary border-gray-300 focus:ring-purple-primary"
-                    />
-                    <span className="text-sm text-gray-800">External data source</span>
-                  </label>
+                  {(() => {
+                    const m = localNode.condition?.metric ?? '';
+                    const isExternal = EXTERNAL_DATA_SOURCE_VALUES.has(m);
+                    const isName = AD_METRIC_NAME_VALUES.has(m);
+                    const isMetric = !isExternal && !isName;
+                    return (
+                      <>
+                        <button
+                          type="button"
+                          role="radio"
+                          aria-checked={isMetric}
+                          onClick={() => handleConditionChange({
+                            id: localNode.condition?.id || 'cond-1',
+                            metric: '',
+                            operator: localNode.condition?.operator || 'less_than',
+                            value: localNode.condition?.value ?? 1.5,
+                          })}
+                          className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-colors ${
+                            isMetric ? 'bg-white text-gray-900 shadow-sm' : 'bg-transparent text-gray-500 hover:text-gray-700'
+                          }`}
+                        >
+                          Metric
+                        </button>
+                        <button
+                          type="button"
+                          role="radio"
+                          aria-checked={isName}
+                          onClick={() => handleConditionChange({
+                            id: localNode.condition?.id || 'cond-1',
+                            metric: AD_METRIC_NAME_VALUES.has(localNode.condition?.metric ?? '') ? (localNode.condition?.metric ?? (NAME_METRICS[0]?.value ?? '')) : (NAME_METRICS[0]?.value ?? ''),
+                            operator: 'contains',
+                            value: localNode.condition?.value ?? '',
+                          })}
+                          className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-colors ${
+                            isName ? 'bg-white text-gray-900 shadow-sm' : 'bg-transparent text-gray-500 hover:text-gray-700'
+                          }`}
+                        >
+                          Name or ID
+                        </button>
+                        <button
+                          type="button"
+                          role="radio"
+                          aria-checked={isExternal}
+                          onClick={() => handleConditionChange({
+                            id: localNode.condition?.id || 'cond-1',
+                            metric: 'stock_level',
+                            operator: localNode.condition?.operator || 'less_than',
+                            value: localNode.condition?.value ?? 5,
+                          })}
+                          className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-colors ${
+                            isExternal ? 'bg-white text-gray-900 shadow-sm' : 'bg-transparent text-gray-500 hover:text-gray-700'
+                          }`}
+                        >
+                          External data source
+                        </button>
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1.5">
-                  {EXTERNAL_DATA_SOURCE_VALUES.has(localNode.condition?.metric ?? '') ? 'External data source' : 'Metric'}
-                </label>
-                <select
-                  value={
-                    EXTERNAL_DATA_SOURCE_VALUES.has(localNode.condition?.metric ?? '')
-                      ? (localNode.condition?.metric || 'stock_level')
-                      : (localNode.condition?.metric || 'ROAS')
-                  }
-                  onChange={(e) => handleConditionChange({
-                    id: localNode.condition?.id || 'cond-1',
-                    metric: e.target.value,
-                    operator: localNode.condition?.operator || 'less_than',
-                    value: localNode.condition?.value ?? 1.5,
-                  })}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-primary focus:border-transparent"
-                >
-                  {EXTERNAL_DATA_SOURCE_VALUES.has(localNode.condition?.metric ?? '') ? (
-                    EXTERNAL_DATA_SOURCES.map((m) => (
-                      <option key={m.value} value={m.value}>{m.label}</option>
-                    ))
-                  ) : (
-                    AD_METRIC_CATEGORIES.map((cat) => (
-                      <optgroup key={cat.label} label={cat.label}>
-                        {cat.metrics.map((m) => (
-                          <option key={m.value} value={m.value}>{m.label}</option>
-                        ))}
-                      </optgroup>
-                    ))
-                  )}
-                </select>
-              </div>
+              {/* Metric / External dropdown – not shown for Name trigger (Name has only "Contains" field) */}
+              {!AD_METRIC_NAME_VALUES.has(localNode.condition?.metric ?? '') && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+                    {EXTERNAL_DATA_SOURCE_VALUES.has(localNode.condition?.metric ?? '')
+                      ? 'External data source'
+                      : 'Metric'}
+                  </label>
+                  <SearchableSelect
+                    value={
+                      EXTERNAL_DATA_SOURCE_VALUES.has(localNode.condition?.metric ?? '')
+                        ? (localNode.condition?.metric || 'stock_level')
+                        : (localNode.condition?.metric ?? '')
+                    }
+                    onChange={(metricValue) => handleConditionChange({
+                      id: localNode.condition?.id || 'cond-1',
+                      metric: metricValue,
+                      operator: localNode.condition?.operator || 'less_than',
+                      value: localNode.condition?.value ?? 1.5,
+                    })}
+                    options={
+                      EXTERNAL_DATA_SOURCE_VALUES.has(localNode.condition?.metric ?? '')
+                        ? EXTERNAL_DATA_SOURCES
+                        : undefined
+                    }
+                    optionsGrouped={
+                      !EXTERNAL_DATA_SOURCE_VALUES.has(localNode.condition?.metric ?? '')
+                        ? AD_METRIC_CATEGORIES_WITHOUT_NAME.map((cat) => ({
+                            label: cat.label,
+                            options: cat.metrics,
+                          }))
+                        : undefined
+                    }
+                    placeholder="Select metric"
+                    aria-label={
+                      EXTERNAL_DATA_SOURCE_VALUES.has(localNode.condition?.metric ?? '')
+                        ? 'External data source'
+                        : 'Metric'
+                    }
+                  />
+                </div>
+              )}
+              {/* Name trigger: dropdown of name options + "Contains" field + Matching items (fills remaining height) */}
+              {AD_METRIC_NAME_VALUES.has(localNode.condition?.metric ?? '') && (
+                <div className="flex-1 flex flex-col min-h-0">
+                  <div className="shrink-0 space-y-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 mb-1.5">Name or ID</label>
+                      <SearchableSelect
+                        value={localNode.condition?.metric ?? (NAME_METRICS[0]?.value ?? '')}
+                        onChange={(metricValue) => handleConditionChange({
+                          id: localNode.condition?.id || 'cond-1',
+                          metric: metricValue,
+                          operator: 'contains',
+                          value: localNode.condition?.value ?? '',
+                        })}
+                        options={NAME_METRICS}
+                        placeholder="Select option"
+                        aria-label="Name or ID"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 mb-1.5">Contains</label>
+                      <input
+                        type="text"
+                        value={typeof localNode.condition?.value === 'string' ? localNode.condition.value : ''}
+                        onChange={(e) => handleConditionChange({
+                          id: localNode.condition?.id || 'cond-1',
+                          metric: localNode.condition?.metric ?? (NAME_METRICS[0]?.value ?? ''),
+                          operator: 'contains',
+                          value: e.target.value,
+                        })}
+                        placeholder="e.g. Brand, Summer"
+                        className="w-full pl-3 pr-8 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-primary focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+                  {(() => {
+                    const containsValue = typeof localNode.condition?.value === 'string' ? localNode.condition.value : '';
+                    const matching = getMatchingAds({ nameContains: containsValue || undefined });
+                    return (
+                      <div className="flex-1 flex flex-col min-h-0 mt-3">
+                        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 shrink-0">
+                          Matching items ({matching.length})
+                        </h4>
+                        <p className="text-xs text-gray-500 mb-2 shrink-0">
+                          Items that match the selected Name or ID and Contains filter
+                        </p>
+                        {matching.length === 0 ? (
+                          <p className="text-sm text-gray-500 py-2 shrink-0">No items match. Adjust Contains.</p>
+                        ) : (
+                          <div className="flex-1 min-h-0 overflow-y-auto rounded-lg border border-gray-200 bg-gray-50 p-2 space-y-1">
+                            {matching.map((ad) => (
+                              <div key={ad.id} className="text-sm text-gray-800 truncate py-0.5" title={ad.name}>
+                                {ad.name}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
               {localNode.condition?.metric === 'spend_change_pct' && (
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 mb-1.5">Compare period</label>
@@ -341,7 +435,7 @@ export const NodeSettingsPanel: React.FC<NodeSettingsPanelProps> = ({
                       value: localNode.condition?.value ?? 20,
                       comparePeriod: e.target.value as ComparePeriod,
                     })}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-primary focus:border-transparent"
+                    className="select-chevron w-full pl-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-primary focus:border-transparent"
                   >
                     <option value="daily">Daily (vs previous day)</option>
                     <option value="weekly">Weekly (vs previous week)</option>
@@ -360,7 +454,7 @@ export const NodeSettingsPanel: React.FC<NodeSettingsPanelProps> = ({
                       value: localNode.condition?.value ?? '',
                       weatherType: e.target.value as WeatherCondition,
                     })}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-primary focus:border-transparent"
+                    className="select-chevron w-full pl-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-primary focus:border-transparent"
                   >
                     <option value="sunny">Sunny</option>
                     <option value="rain_chance">Chance of rain &gt; X%</option>
@@ -381,7 +475,7 @@ export const NodeSettingsPanel: React.FC<NodeSettingsPanelProps> = ({
                       value: localNode.condition?.value ?? 'loss',
                       matchResult: e.target.value as MatchResult,
                     })}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-primary focus:border-transparent"
+                    className="select-chevron w-full pl-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-primary focus:border-transparent"
                   >
                     <option value="win">Win</option>
                     <option value="loss">Loss</option>
@@ -389,7 +483,8 @@ export const NodeSettingsPanel: React.FC<NodeSettingsPanelProps> = ({
                   </select>
                 </div>
               )}
-              {localNode.condition?.metric !== 'match_result' && (
+              {localNode.condition?.metric !== 'match_result' &&
+                !AD_METRIC_NAME_VALUES.has(localNode.condition?.metric ?? '') && (
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 mb-1.5">Operator</label>
                   <select
@@ -398,13 +493,14 @@ export const NodeSettingsPanel: React.FC<NodeSettingsPanelProps> = ({
                       const isMetric = !EXTERNAL_DATA_SOURCE_VALUES.has(localNode.condition?.metric ?? '');
                       handleConditionChange({
                         id: localNode.condition?.id || 'cond-1',
-                        metric: localNode.condition?.metric || 'ROAS',
+                        metric: localNode.condition?.metric ?? '',
                         operator: e.target.value as ConditionOperator,
                         value: localNode.condition?.value ?? 1.5,
                         ...(isMetric && localNode.condition?.lookbackWindow && { lookbackWindow: localNode.condition.lookbackWindow }),
+                        ...(localNode.condition?.unit && { unit: localNode.condition.unit }),
                       });
                     }}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-primary focus:border-transparent"
+                    className="select-chevron w-full pl-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-primary focus:border-transparent"
                   >
                     <option value="less_than">Less than</option>
                     <option value="greater_than">Greater than</option>
@@ -415,12 +511,10 @@ export const NodeSettingsPanel: React.FC<NodeSettingsPanelProps> = ({
                   </select>
                 </div>
               )}
-              {(localNode.condition?.metric === 'daily_spend' ||
-                localNode.condition?.metric === 'spend_change_pct' ||
-                localNode.condition?.metric === 'ROAS' ||
-                localNode.condition?.metric === 'CPA' ||
-                localNode.condition?.metric === 'CTR' ||
-                (localNode.condition?.metric === 'weather_condition' && localNode.condition?.weatherType !== 'sunny')) && (
+              {/* Value field for all metric triggers (after operator), except match_result */}
+              {localNode.condition?.metric !== 'match_result' &&
+                !EXTERNAL_DATA_SOURCE_VALUES.has(localNode.condition?.metric ?? '') &&
+                !AD_METRIC_NAME_VALUES.has(localNode.condition?.metric ?? '') && (
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 mb-1.5">
                     {localNode.condition?.metric === 'daily_spend' ? 'Threshold (e.g. £)' : 'Value'}
@@ -432,18 +526,47 @@ export const NodeSettingsPanel: React.FC<NodeSettingsPanelProps> = ({
                       const isMetric = !EXTERNAL_DATA_SOURCE_VALUES.has(localNode.condition?.metric ?? '');
                       handleConditionChange({
                         id: localNode.condition?.id || 'cond-1',
-                        metric: localNode.condition?.metric || 'ROAS',
+                        metric: localNode.condition?.metric ?? '',
                         operator: localNode.condition?.operator || 'less_than',
                         value: localNode.condition?.metric === 'spend_change_pct' ? Number(e.target.value) : (e.target.value as string | number),
                         ...(isMetric && localNode.condition?.lookbackWindow && { lookbackWindow: localNode.condition.lookbackWindow }),
+                        ...(localNode.condition?.unit && { unit: localNode.condition.unit }),
                       });
                     }}
                     placeholder={localNode.condition?.metric === 'daily_spend' ? '5' : localNode.condition?.metric === 'spend_change_pct' ? '20' : ''}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-primary focus:border-transparent"
+                    className="w-full pl-3 pr-8 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-primary focus:border-transparent"
                   />
                 </div>
               )}
-              {!EXTERNAL_DATA_SOURCE_VALUES.has(localNode.condition?.metric ?? '') && (
+              {/* Unit selection after value (metric triggers only, except match_result) */}
+              {localNode.condition?.metric !== 'match_result' &&
+                !EXTERNAL_DATA_SOURCE_VALUES.has(localNode.condition?.metric ?? '') &&
+                !AD_METRIC_NAME_VALUES.has(localNode.condition?.metric ?? '') && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1.5">Unit</label>
+                  <select
+                    value={localNode.condition?.unit ?? ''}
+                    onChange={(e) => {
+                      const unit = e.target.value;
+                      handleConditionChange({
+                        id: localNode.condition?.id || 'cond-1',
+                        metric: localNode.condition?.metric ?? '',
+                        operator: localNode.condition?.operator || 'less_than',
+                        value: localNode.condition?.value ?? 1.5,
+                        ...(localNode.condition?.lookbackWindow && { lookbackWindow: localNode.condition.lookbackWindow }),
+                        ...(unit ? { unit } : {}),
+                      });
+                    }}
+                    className="select-chevron w-full pl-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-primary focus:border-transparent"
+                  >
+                    {CONDITION_UNIT_OPTIONS.map((opt) => (
+                      <option key={opt.value || 'none'} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {!EXTERNAL_DATA_SOURCE_VALUES.has(localNode.condition?.metric ?? '') &&
+                !AD_METRIC_NAME_VALUES.has(localNode.condition?.metric ?? '') && (
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 mb-1.5">Lookback window</label>
                   <select
@@ -452,13 +575,14 @@ export const NodeSettingsPanel: React.FC<NodeSettingsPanelProps> = ({
                       const lookbackWindow = e.target.value;
                       handleConditionChange({
                         id: localNode.condition?.id || 'cond-1',
-                        metric: localNode.condition?.metric || 'ROAS',
+                        metric: localNode.condition?.metric ?? '',
                         operator: localNode.condition?.operator || 'less_than',
                         value: localNode.condition?.value ?? 1.5,
                         ...(lookbackWindow ? { lookbackWindow } : {}),
+                        ...(localNode.condition?.unit && { unit: localNode.condition.unit }),
                       });
                     }}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-primary focus:border-transparent"
+                    className="select-chevron w-full pl-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-primary focus:border-transparent"
                   >
                     {LOOKBACK_OPTIONS.map((opt) => (
                       <option key={opt.value || 'current'} value={opt.value}>{opt.label}</option>
@@ -481,7 +605,7 @@ export const NodeSettingsPanel: React.FC<NodeSettingsPanelProps> = ({
                   id: localNode.action?.id || 'action-1',
                   type: e.target.value as ActionType,
                 })}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-primary focus:border-transparent"
+                className="select-chevron w-full pl-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-primary focus:border-transparent"
               >
                 <option value="pause">Pause campaign</option>
                 <option value="activate">Activate campaign</option>
@@ -504,7 +628,7 @@ export const NodeSettingsPanel: React.FC<NodeSettingsPanelProps> = ({
               onChange={(e) => handleNoteChange(e.target.value)}
               placeholder="Add your note..."
               rows={5}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-primary focus:border-transparent resize-y min-h-[100px]"
+              className="w-full pl-3 pr-8 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-primary focus:border-transparent resize-y min-h-[100px]"
             />
           </div>
         )}
